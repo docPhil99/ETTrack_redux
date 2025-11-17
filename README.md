@@ -6,9 +6,9 @@ This is a cleaned up version of the code from the paper. The netwok is the same,
 
 ## TODO
 
-- [] Only DanceTrack has been tested in this version. Check the dataloader.
-- [] Re-implement momementum loss to work on CUDA. The current version used numpy on the CPU and very slow.
-- [] Test install
+- [ ] Only DanceTrack has been tested in this version. Check the dataloader.
+- [ ] Re-implement momementum loss to work on CUDA. The current version used numpy on the CPU and very slow.
+- [ ] Test install
 
 
 ## Install
