@@ -1,6 +1,29 @@
 [project]
 name = "ettrack-redux"
 version = "0.1.0"
-description = "Add your description here"
+description = "ETTrack code"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "loguru>=0.7.3",
+    "tqdm>=4.67.1",
+    "torch==2.1.1",
+    "torchvision",
+    "opencv-python==4.11.0.86",
+    "thop",
+    "ninja",
+    "tabulate",
+    "pycocotools>=2.0.2",
+    "onnx>=1.13.0",
+    "onnx-simplifier==0.4.10",
+    "scipy",
+    "matplotlib",
+    "lap",
+    "cython-bbox",
+    "numpy<2",
+    "pycocotools==2.0.7",
+    "pyyaml",
+]
+[[tool.uv.index]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true

@@ -5,7 +5,7 @@ from pathlib import Path
 from collections import defaultdict
 import time
 import torch
-from utils.utils import write_results
+from .utils import write_results
 from yolox.utils.boxes import xyxy2xywh
 
 import contextlib

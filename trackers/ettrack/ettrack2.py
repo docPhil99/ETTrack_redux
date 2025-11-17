@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from tqdm import tqdm
-from tools_ettrack.utils.TrackletDataset import TrackletDataset
+from tools.utils.TrackletDataset import TrackletDataset
 from loguru import logger
 CUDA_LAUNCH_BLOCKING = 1
 from trackers.ettrack.network.loss import Loss
