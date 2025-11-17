@@ -1,5 +1,16 @@
 # ETTrack
 
+Refactored code from the paper  X. Han et al., “ETTrack: enhanced temporal motion predictor for multi-object tracking,” Appl. Intell., vol. 55, no. 1, Jan. 2025. https://doi.org/10.1007/s10489-024-05866-4
+  
+This is a cleaned up version of the code from the paper. The netwok is the same, but some changes to the dataloader have been updated to speed things up. 
+
+## TODO
+
+[] Only DanceTrack has been tested in this version. Check the dataloader.
+[] Re-implement momementum loss to work on CUDA. The current version used numpy on the CPU and very slow.
+[] Test install
+
+
 ## Install
 Install via uv
 
