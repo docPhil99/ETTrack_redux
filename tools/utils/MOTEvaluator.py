@@ -70,7 +70,8 @@ class MOTEvaluator():
                 outputs[0]=outputs[0].unsqueeze(0)
             output_results = self.convert_to_coco_format(outputs, info_imgs, ids)
             data_list.extend(output_results)
-
+            if video_name == 'MOT17-05-FRCNN':
+                logger.debug(f'output shape {outputs.shape} ')# and values {outputs}')
             #run tracker
             online_targets = tracker.update(outputs[0], info_imgs, self.img_size)
             online_tlwhs = []

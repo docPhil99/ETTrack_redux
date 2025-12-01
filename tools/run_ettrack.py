@@ -34,12 +34,31 @@ def make_parser():
     parser.add_argument('--img_size', type=int, nargs=2, default=[800,1440])
     parser.add_argument('--device', type=str, default='gpu')
     parser.add_argument('--HOTA', action='store_true', help='run HOTA command only')
+    parser.add_argument('--annotation_file',type=Path,default=None, help='name of annotation file. It will default to val.json, test.test, or train.json depending on --exp_type')
     return parser
 
 def main(args,output_dir):
+
+
+    # attempt to guess the annotation file name, depending on the dataset and experiment type.
+    # Assuming --annotation_file is not set.
+    if args.annotation_file:
+        json_file = args.annotation_file
+    else:
+        if args.dataset in ['mot17','mot20']:
+            if args.exp_type in ['val','train']:
+                json_file = f'{args.exp_type}_half.json'
+            else:
+                json_file = f'{args.exp_type}.json'  #must be test
+        else:
+            json_file = f'{args.exp_type}.json'   #dancetrack
     # load dataset
+    if args.dataset == 'mot17':  # for some reason the MOT17 is put in datasets/mot
+        args.dataset = 'mot'
+
     dataset_dir = args.dataset_dir / Path(args.dataset)
-    dataloader_set = MOTDatasetET2(data_dir=dataset_dir, json_file='val.json', name=args.exp_type,
+    logger.debug(f'Dataset directory: {dataset_dir}')
+    dataloader_set = MOTDatasetET2(data_dir=dataset_dir, json_file=json_file, name=args.exp_type,
                                    dataset=args.dataset, img_size=args.img_size, return_image=False,
                                    run_tracking=False, yolo_detections_dir=args.yolo_dump_dir)
 

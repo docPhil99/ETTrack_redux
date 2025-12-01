@@ -12,7 +12,7 @@ from collections import defaultdict
 
 class MOTDatasetET2(MOTDataset):
     def __init__(self, data_dir:str = None, json_file: str = "train_half.json", name:str = "train", img_size:tuple[int,int] = (800, 1440),
-                 dataset:str = 'dancetrack', return_image=True,
+                 dataset:str = 'dancetrack', return_image=True, resize:tuple[int,int]|None = None,
                  yolo_detections_dir:Path=Path('yolo_outputs'), run_tracking = False,preproc = None, yolo_dets_filename: Path=Path('yolo_dets.pt')):
         #  use_stored = False, store_dir: Path = None, use_pickle = False)
         """
@@ -22,6 +22,7 @@ class MOTDatasetET2(MOTDataset):
         :param img_size: 
         :param preproc: 
         :param run_tracking: true for tracking mode, not for training
+        :param yolo_detections_dir: path to load yolo detection results. Set to None if they haven't been generated yet.
         """
 
         super().__init__(data_dir, json_file, name, img_size, preproc, run_tracking)
@@ -30,18 +31,21 @@ class MOTDatasetET2(MOTDataset):
         self.name = self.name
         self.yolo_detections_dir = yolo_detections_dir
         self._return_image = return_image
+        self.resize = resize
 
+        self.all_outputs_dict = None
         logger.debug(
             f'MOTDatasetET Data directory is {self.data_dir} name is {self.name}, json_file is {self.json_file}',
             f'yolo_detections_dir is {self.yolo_detections_dir}')
-        filename = yolo_detections_dir / Path(dataset)/Path(name)/yolo_dets_filename
-        logger.info(f"Processing yolo det file {filename}")
-        all_outputs_list = torch.load(filename)
+        if self.yolo_detections_dir:
+            filename = yolo_detections_dir / Path(dataset)/Path(name)/yolo_dets_filename
+            logger.info(f"Processing yolo det file {filename}")
+            all_outputs_list = torch.load(filename)
 
-        self.all_outputs_dict = defaultdict(dict)  #conver to dict [filename][frame_num]   not zero based
-        for dat in all_outputs_list:
-            v_name, v_id, f_id, dets = dat
-            self.all_outputs_dict[v_name][f_id.item()] = dets
+            self.all_outputs_dict = defaultdict(dict)  #conver to dict [filename][frame_num]   not zero based
+            for dat in all_outputs_list:
+                v_name, v_id, f_id, dets = dat
+                self.all_outputs_dict[v_name][f_id.item()] = dets
 
     @Dataset.resize_getitem
     def __getitem__(self, index):
@@ -55,7 +59,10 @@ class MOTDatasetET2(MOTDataset):
 
         filename = self.annotations[index][2]
         key = filename.split('/')[0]  # file
-        det = self.all_outputs_dict[key][img_info[2]]
+        if self.yolo_detections_dir:
+            det = self.all_outputs_dict[key][img_info[2]]
+        else:
+            det = 0
         #logger.debug(f'key: {key}, img_info: {img_info}')
         return img, det, img_info, img_id,
 
@@ -72,6 +79,9 @@ class MOTDatasetET2(MOTDataset):
         if self._return_image:
             img = cv2.imread(img_file)
             assert img is not None, f'failed to load {img_file}'
+            if self.resize:
+                img = cv2.resize(img, self.resize)
+                img = np.transpose(img, (2, 1, 0))
         else:
             img = 0
         return img, res.copy(), img_info, np.array([id_])

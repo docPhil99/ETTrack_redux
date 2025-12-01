@@ -49,7 +49,10 @@ python tools/generate_yolo_detections.py --yolox_weights pretrained/yolox/bytetr
 ```
 will create the detection file for the dancetrack validation set.
 
-To evaluate this, using the star_1616.tar ettrack weights:
+For MOT17 that have no validation set, run this on the training set and copy (or symlink) the
+detection file to the mot/val file
+
+To evaluate this, using the [star_1616.tar](https://drive.google.com/drive/folders/1v-rKCEtL_XjjoBwmMvYQQux0p_WWGD2M) ettrack weights (used for DanceTrack in the paper):
 
 ```
 python tools/run_ettrack.py --dataset_dir data/datasets --dataset dancetrack \

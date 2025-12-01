@@ -265,7 +265,7 @@ class TrackletDataset(Dataset):
         self.all_tracklets_xxyy = torch.cat([self.all_tracklets_xxyy, deltas], dim=2)
 
 
-## just used fro debugging:
+## just used for debugging:
 if __name__ == '__main__':
 
     d1 = TrackletDataset(Path('datasets/processed_output/dancetrack/'),'train')

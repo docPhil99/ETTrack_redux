@@ -2,11 +2,14 @@ from loguru import logger
 from pathlib import Path
 import argparse
 import torch
-import exps.ettrack.yolox_dancetrack_val_ettrack as Exp
+import exp.yolox_dancetrack_val_ettrack as Exp
+from tools.utils.Exp import Exp
 from yolox.utils import fuse_model, get_model_info, setup_logger, postprocess
 from tqdm import tqdm
 import cv2
 import numpy as np
+import os
+
 
 def playback(args, val_loader,yolo_dump_dir):
     #output_path = args.yolo_outputs / Path(args.dataset)
@@ -59,27 +62,36 @@ def playback(args, val_loader,yolo_dump_dir):
             if q==ord('q'):
                 return
 
-
-
 if __name__ == "__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument('-c','--yolox_weights',type=Path, help='yolox weights file', default=Path('pretrained/bytetrack_dance_model.pth.tar'))
     parser.add_argument("-b", "--batch-size", type=int, default=8, help="batch size")
-    parser.add_argument("-d", "--dataset", type=str, default='dancetrack', help="dataset name")
-    parser.add_argument("--dataset_dir",type=Path, default='datasets', help="dataset directory")
-    parser.add_argument('--yolo_outputs',type=Path,default='yolo_outputs', help="yolox detection output directory")
+    parser.add_argument("-d", "--dataset", type=str.lower, default='dancetrack', help="dataset name, eg dancetrack, MOT17")
+    parser.add_argument("--dataset_dir",type=Path, default='data/datasets', help="dataset directory")
+    parser.add_argument('--yolo_outputs',type=Path,default='data/yolo_outputs', help="yolox detection output directory")
     parser.add_argument('-t','--type',type=str,choices=['val','train','test'], default='val')
     parser.add_argument("--test",action="store_true",help="test, by showing replay")
+    parser.add_argument('--annotation_file', type=Path, default=None,
+                        help='name of annotation file. It will default to val.json, test.test, or train.json depending on --exp_type')
+    parser.add_argument('--img_size', type=int, nargs=2, default=None)
     args = parser.parse_args()
 
 
-    yolo_dump_dir = args.yolo_outputs / Path(args.dataset) / Path(args.type) # dir to store detections
+    if args.dataset=='mot17':
+        d_path=Path('mot')
+    else:
+        d_path=Path(args.dataset)
+    yolo_dump_dir = args.yolo_outputs /d_path / Path(args.type) # dir to store detections
     yolo_dump_dir.mkdir(parents=True, exist_ok=True)
 
-    exp = Exp.Exp()
+    exp = Exp(args)
+    val_loader = exp.get_data_loader()
 
-    val_loader = exp.get_eval_loader(args.batch_size, False, testdev=False, run_tracking=False, yolo_dump_dir=None
-                        ,use_stored_yolo=False, dataset =args.dataset, restrict_file=None ,use_pickle=False)
+    #exp = Exp.Exp()
+    #os.environ["YOLOX_DATADIR"] = str(args.dataset_dir)
+    #exp.val_ann = "val_half.json"
+    #val_loader = exp.get_eval_loader(args.batch_size, False, testdev=False, run_tracking=False, yolo_dump_dir=None
+    #                    ,use_stored_yolo=False, dataset ="mot", restrict_file=None ,use_pickle=False)
 
     if args.test:
         playback(args,val_loader, yolo_dump_dir)
