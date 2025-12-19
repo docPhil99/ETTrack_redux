@@ -2,7 +2,7 @@ from loguru import logger
 from pathlib import Path
 import argparse
 import torch
-import exp.yolox_dancetrack_val_ettrack as Exp
+#import exp.yolox_dancetrack_val_ettrack as Exp
 from tools.utils.Exp import Exp
 from yolox.utils import fuse_model, get_model_info, setup_logger, postprocess
 from tqdm import tqdm
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dataset", type=str.lower, default='dancetrack', help="dataset name, eg dancetrack, MOT17")
     parser.add_argument("--dataset_dir",type=Path, default='data/datasets', help="dataset directory")
     parser.add_argument('--yolo_outputs',type=Path,default='data/yolo_outputs', help="yolox detection output directory")
-    parser.add_argument('-t','--type',type=str,choices=['val','train','test'], default='val')
+    parser.add_argument('-t','--exp_type',type=str,choices=['val','train','test'], default='val')
     parser.add_argument("--test",action="store_true",help="test, by showing replay")
     parser.add_argument('--annotation_file', type=Path, default=None,
                         help='name of annotation file. It will default to val.json, test.test, or train.json depending on --exp_type')
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         d_path=Path('mot')
     else:
         d_path=Path(args.dataset)
-    yolo_dump_dir = args.yolo_outputs /d_path / Path(args.type) # dir to store detections
+    yolo_dump_dir = args.yolo_outputs /d_path / Path(args.exp_type) # dir to store detections
     yolo_dump_dir.mkdir(parents=True, exist_ok=True)
 
     exp = Exp(args)

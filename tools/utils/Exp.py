@@ -1,7 +1,7 @@
 from yolox.exp import Exp as MyExp
 from loguru import logger
-from trackers.ettrack.MOTDatasetET import MOTDatasetET2
-from yolox.data import MOTDataset, ValTransform
+from trackers.ettrack.datasets.MOTDatasetET import MOTDatasetET2
+#from yolox.data import MOTDataset
 from pathlib import Path
 import torch
 
@@ -16,7 +16,7 @@ class Exp(MyExp):
         if args.annotation_file:
             self.json_file = args.annotation_file
         else:
-            self.json_file = f'{args.type}.json'
+            self.json_file = f'{args.exp_type}.json'
         logger.info(f"Processing {self.json_file}")
         if not args.img_size:
             args.img_size = (800, 1440)

@@ -1,4 +1,4 @@
-from yolox.data.datasets import MOTDataset
+from trackers.ettrack.datasets.mot import MOTDataset
 from yolox.data.datasets.datasets_wrapper import Dataset
 from pathlib import Path
 import cv2
@@ -47,7 +47,7 @@ class MOTDatasetET2(MOTDataset):
                 v_name, v_id, f_id, dets = dat
                 self.all_outputs_dict[v_name][f_id.item()] = dets
 
-    @Dataset.resize_getitem
+    #@Dataset.resize_getitem  #todo check size
     def __getitem__(self, index):
         return self.__getitem(index)
 
@@ -135,7 +135,7 @@ class MOTDatasetET(MOTDataset):
     #         if name in anno[2]:
     #             self.ids.append(ind)
 
-    @Dataset.resize_getitem
+    #@Dataset.resize_getitem  #todo check size
     def __getitem__(self, index):
 
         if not self.use_stored:

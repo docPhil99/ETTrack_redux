@@ -6,7 +6,7 @@ from datetime import datetime
 #from mpmath.ctx_mp_python import return_mpc
 
 from trackers.ettrack.ettrack2 import Predict as Predict_Birch
-from trackers.ettrack.MOTDatasetET import MOTDatasetET2
+from trackers.ettrack.datasets.MOTDatasetET import MOTDatasetET2
 import torch
 from tools.utils.MOTEvaluator import MOTEvaluator
 from tools.utils.HOTA import run_hota_command
@@ -14,7 +14,7 @@ from tools.utils.HOTA import run_hota_command
 def make_parser():
     parser = argparse.ArgumentParser("ETTrack parameters")
     # ettrack
-    parser.add_argument("--dataset_dir", type=Path, default='datasets', help="dataset directory")
+    parser.add_argument("--dataset_dir", type=Path, default='data/datasets', help="dataset directory")
     parser.add_argument("--exp_name", type=str, default=None, help="Experiment name, use date if not set")
     parser.add_argument("--track_thresh", type=float, default=0.6, help="detection confidence threshold")
     parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
@@ -27,7 +27,9 @@ def make_parser():
                         choices=["dancetrack", "mot17", "mot20"])
     parser.add_argument('--exp_type', type=str, default='val', choices=['val', 'test', 'train'],
                         help="val or test dataset")
-    parser.add_argument('--yolo_dump_dir', type=Path, default='yolo_outputs')
+    parser.add_argument('--yolo_dump_dir', type=Path, default='data/yolo_outputs')
+    parser.add_argument('--live_yolo', action='store_true', help='run live yolo on the dataset, rather than saved results')
+    parser.add_argument('--yolox_weights', type=Path, default='pretrained/yolox/ocsort_x_mot17.pth.tar')
 
     #parser.add_argument('--restrict_file', type=str, help='restrict dataset to specific file')
     parser.add_argument('--output_dir', type=Path, default=Path('YOLOX_outputs'))
@@ -53,13 +55,13 @@ def main(args,output_dir):
         else:
             json_file = f'{args.exp_type}.json'   #dancetrack
     # load dataset
-    if args.dataset == 'mot17':  # for some reason the MOT17 is put in datasets/mot
-        args.dataset = 'mot'
+    #if args.dataset == 'mot17':  # for some reason the MOT17 is put in datasets/mot
+    #    args.dataset = 'mot'
 
     dataset_dir = args.dataset_dir / Path(args.dataset)
     logger.debug(f'Dataset directory: {dataset_dir}')
     dataloader_set = MOTDatasetET2(data_dir=dataset_dir, json_file=json_file, name=args.exp_type,
-                                   dataset=args.dataset, img_size=args.img_size, return_image=False,
+                                   dataset=args.dataset, img_size=args.img_size, return_image=args.live_yolo,
                                    run_tracking=False, yolo_detections_dir=args.yolo_dump_dir)
 
     sampler = torch.utils.data.SequentialSampler(dataloader_set)  # todo what does this do?

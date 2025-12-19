@@ -7,11 +7,13 @@ import time
 import torch
 from .utils import write_results
 from yolox.utils.boxes import xyxy2xywh
-
 import contextlib
 import tempfile
 import json
 import io
+
+# for live yolo
+from yolox.utils import fuse_model, get_model_info, postprocess
 
 
 def time_synchronized():
@@ -28,6 +30,26 @@ class MOTEvaluator():
         self.results_dir = results_dir
         self.img_size = image_size
 
+        if args.live_yolo:
+            logger.info("Live-YOLO mode")
+            fp16 = True
+            from tools.utils.Exp import Exp
+
+            self.exp = Exp(args)
+            self.dataloader.dataset.resize = self.exp.input_size
+            yolo_model = self.exp.get_model()
+            yolo_model.cuda()
+            yolo_model.eval()
+            # load weights
+            weights = torch.load(args.yolox_weights, map_location='cuda:0')
+            yolo_model.load_state_dict(weights["model"])
+            logger.info("loaded checkpoint done.")
+            logger.info("Model Summary: {}".format(get_model_info(yolo_model, self.exp.test_size)))
+
+            logger.info('Fusing...')
+            self.yolo_model = fuse_model(yolo_model)
+
+
 
     def evaluate_ettrack(self):
 
@@ -39,57 +61,64 @@ class MOTEvaluator():
         tracker = None
 
         for cur_iter, (imgs, dets, info_imgs, ids) in enumerate(tqdm(self.dataloader)):
-            frame_id = info_imgs[2].item()
-            img_file_name = info_imgs[4]
-            video_name = img_file_name[0].split('/')[0]
-            video_id = info_imgs[3].item()
-            if video_name not in video_names:   # store the list of video file names, so we can save the previous
-                video_names[video_id] = video_name
+            with torch.no_grad():
+                frame_id = info_imgs[2].item()
+                img_file_name = info_imgs[4]
+                video_name = img_file_name[0].split('/')[0]
+                video_id = info_imgs[3].item()
+                if video_name not in video_names:   # store the list of video file names, so we can save the previous
+                    video_names[video_id] = video_name
 
-            #set up and save last results
-            if frame_id == 1:
-                # first frame, create tracker
-                tracker = byte_tp(self.tracking_network, self.args)
+                #set up and save last results
+                if frame_id == 1:
+                    # first frame, create tracker
+                    tracker = byte_tp(self.tracking_network, self.args)
 
 
-                if (len(results)) != 0:
-                    results_filename = self.results_dir/Path(f'{video_names[video_id-1]}.txt')
-                    write_results(results_filename, results)
-                    results = []
-                logger.info(f'Processing file {video_name}')
-            # skip the last iters since batchsize might be not enough for batch inference
-            is_time_record = cur_iter < len(self.dataloader) - 1
-            if is_time_record:
-                start = time.time()
-            outputs = dets
-            if is_time_record:
-                infer_end = time_synchronized()
-                inference_time += infer_end - start
-            if outputs[0].dim() == 1:
-                logger.debug('wrong dim')
-                outputs[0]=outputs[0].unsqueeze(0)
-            output_results = self.convert_to_coco_format(outputs, info_imgs, ids)
-            data_list.extend(output_results)
-            if video_name == 'MOT17-05-FRCNN':
-                logger.debug(f'output shape {outputs.shape} ')# and values {outputs}')
-            #run tracker
-            online_targets = tracker.update(outputs[0], info_imgs, self.img_size)
-            online_tlwhs = []
-            online_ids = []
-            online_scores = []
-            for t in online_targets:
-                tlwh = t.tlwh
-                tid = t.track_id
-                if tlwh[2] * tlwh[3] > self.args.min_box_area:
-                    online_tlwhs.append(tlwh)
-                    online_ids.append(tid)
-                    online_scores.append(t.score)
-            # save results
-            results.append((frame_id, online_tlwhs, online_ids, online_scores))
-            if is_time_record:
-                track_end = time_synchronized()
-                track_time += track_end - infer_end
-            #if cur_iter == len(self.dataloader) - 1:  # save the final video
+                    if (len(results)) != 0:
+                        results_filename = self.results_dir/Path(f'{video_names[video_id-1]}.txt')
+                        write_results(results_filename, results)
+                        results = []
+                    logger.info(f'Processing file {video_name}')
+                # skip the last iters since batchsize might be not enough for batch inference
+                is_time_record = cur_iter < len(self.dataloader) - 1
+                if is_time_record:
+                    start = time.time()
+                if self.args.live_yolo:
+                    imgs = imgs.type(torch.cuda.FloatTensor)
+                    outputs = self.yolo_model(imgs)
+                    outputs = postprocess(outputs, self.exp.num_classes, self.exp.test_conf, self.exp.nmsthre)
+                else:
+                    outputs = dets
+                if is_time_record:
+                    infer_end = time_synchronized()
+                    inference_time += infer_end - start
+                if outputs[0].dim() == 1:
+                    logger.debug('wrong dim')
+                    outputs[0]=outputs[0].unsqueeze(0)
+                output_results = self.convert_to_coco_format(outputs, info_imgs, ids)
+                data_list.extend(output_results)
+                if video_name == 'MOT17-05-FRCNN':
+                    #logger.debug(f'output shape {outputs.shape} ')# and values {outputs}')
+                    logger.debug(f'outputs: {outputs}')
+                #run tracker
+                online_targets = tracker.update(outputs[0], info_imgs, self.img_size)
+                online_tlwhs = []
+                online_ids = []
+                online_scores = []
+                for t in online_targets:
+                    tlwh = t.tlwh
+                    tid = t.track_id
+                    if tlwh[2] * tlwh[3] > self.args.min_box_area:
+                        online_tlwhs.append(tlwh)
+                        online_ids.append(tid)
+                        online_scores.append(t.score)
+                # save results
+                results.append((frame_id, online_tlwhs, online_ids, online_scores))
+                if is_time_record:
+                    track_end = time_synchronized()
+                    track_time += track_end - infer_end
+                #if cur_iter == len(self.dataloader) - 1:  # save the final video
         logger.debug('save final result')
         results_filename = self.results_dir / Path(f'{video_names[video_id]}.txt')
         write_results(results_filename, results)

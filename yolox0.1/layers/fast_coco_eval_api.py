@@ -72,7 +72,7 @@ class COCOeval_opt(COCOeval):
             # to access in C++
             instances_cpp = []
             for instance in instances:
-                instance_cpp = _C.InstanceAnnotation(
+               instance_cpp = _C.InstanceAnnotation(
                     int(instance["id"]),
                     instance["score"] if is_det else instance.get("score", 0.0),
                     instance["area"],
